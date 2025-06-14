@@ -1,33 +1,26 @@
-// app.js
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const session = require("express-session");
 const passport = require("passport");
-
 const connectDB = require("./config/db");
-const contactRoutes = require("./routes/contactRoutes");
-const productRoutes = require("./routes/productRoutes");
-const authRoutes = require("./routes/authRoutes");
-const swaggerSetup = require("./config/swagger");
 require("./config/passport-setup");
 
 dotenv.config();
 
 const app = express();
+
+if (!process.env.JWT_SECRET) {
+  console.error("FATAL ERROR: JWT_SECRET is not defined.");
+  process.exit(1);
+}
+
 const API_URL = process.env.API_URL || "http://localhost:5000";
 
-// Connect to MongoDB
 connectDB();
 
-// Middleware
-app.use(
-  cors({
-    origin: process.env.CLIENT_URL || "*",
-    credentials: true,
-  })
-);
+app.use(cors({ origin: process.env.CLIENT_URL || "*", credentials: true }));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -36,76 +29,62 @@ app.use(
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    cookie: {
-
-    },
   })
 );
 
 app.use(passport.initialize());
 app.use(passport.session());
 
+const authRoutes = require("./routes/authRoutes");
+const recipeRoutes = require("./routes/recipeRoutes");
+const categoryRoutes = require("./routes/categoryRoutes");
+const reviewRoutes = require("./routes/reviewRoutes");
+
+app.use("/auth", authRoutes);
+app.use("/api/recipes", recipeRoutes);
+app.use("/api/categories", categoryRoutes);
+app.use("/api/reviews", reviewRoutes);
+
 app.get("/", (req, res) => {
   res.setHeader("Content-Type", "text/html");
-
   const token = req.query.token;
   const message = req.query.message;
-
-  let authStatus = "Logged Out";
-  let profileLink = "";
   let tokenDisplay = "";
-
-  if (req.isAuthenticated && req.isAuthenticated()) {
-      authStatus = `Logged In via session as ${req.user.displayName}`;
-      profileLink = `<p><a href="${API_URL}/auth/profile">View Profile (Session Based - requires login if session expires)</a></p>
-                     <p>To test JWT protected routes, use the token below with Postman or Swagger Authorize button.</p>`;
-  }
-
   if (token) {
-    authStatus = "Login Successful (JWT Issued)!"; // Overwrite if token is present
     tokenDisplay = `
       <h3>Your JWT Token:</h3>
       <p style="word-break: break-all;">${token}</p>
-      <p><strong>Copy this token</strong> to use with API clients (like Postman or Swagger's "Authorize" button) for accessing protected routes.</p>
-      <p>For example, set Header: <code>Authorization: Bearer ${token}</code></p>
-    `;
+      <p><strong>Copy this token</strong> to use with API clients for accessing protected routes.</p>
+      <p>Set Header: <code>Authorization: Bearer ${token}</code></p>`;
   }
-
   let pageMessage = "";
   if (message) {
-    pageMessage = `<p style="color: green;"><strong>Message:</strong> ${decodeURIComponent(message)}</p>`;
+    pageMessage = `<p style="color: green;"><strong>Message:</strong> ${decodeURIComponent(
+      message
+    )}</p>`;
   }
-
 
   res.status(200).send(`
     <!DOCTYPE html>
     <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>API Home</title>
-        <style>
-            body { font-family: sans-serif; margin: 20px; }
-            code { background-color: #f0f0f0; padding: 2px 5px; border-radius: 3px; }
-            h3 { margin-top: 30px; }
-        </style>
-    </head>
-    <body>
-        <h1>(╯°□°）╯︵ ┻━┻</h1>
+    <head><title>Recipe API</title></head>
+    <body style="font-family: sans-serif; margin: 20px;">
+        <h1>Recipe API</h1>
         ${pageMessage}
-        <p><a href="${API_URL}/auth/google">Login with Google</a></p>
-        <p><a href="${API_URL}/api-docs">API Documentation (Swagger)</a></p>
+        <p><a href="${API_URL}/auth/google">Login with Google to get a JWT Token</a></p>
+        <p>Use the token to access protected routes for creating, updating, or deleting recipes, categories, and reviews.</p>
+        ${tokenDisplay}
     </body>
     </html>
   `);
 });
 
-// Routes
-app.use("/auth", authRoutes);
-app.use("/api", contactRoutes);
-app.use("/api", productRoutes);
-
-swaggerSetup(app);
-
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}. Access API docs at ${API_URL}/api-docs. Main page at ${API_URL}/`));
+
+if (process.env.NODE_ENV !== "test") {
+  app.listen(PORT, () =>
+    console.log(`Server running on port ${PORT}. Main page at ${API_URL}/`)
+  );
+}
+
+module.exports = app;

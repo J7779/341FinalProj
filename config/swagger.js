@@ -1,64 +1,69 @@
-const swaggerJsdoc = require('swagger-jsdoc');
-const swaggerUi = require('swagger-ui-express');
-require('dotenv').config();
+const swaggerJsdoc = require("swagger-jsdoc");
+const swaggerUi = require("swagger-ui-express");
+require("dotenv").config();
 
 const port = process.env.PORT || 5000;
-const serverUrl = process.env.API_URL || process.env.RENDER_EXTERNAL_URL || `http://localhost:${port}`;
+const serverUrl =
+  process.env.API_URL ||
+  process.env.RENDER_EXTERNAL_URL ||
+  `http://localhost:${port}`;
 
 console.log(`Swagger configured to use server URL: ${serverUrl}`);
 
 const options = {
   definition: {
-    openapi: '3.0.0',
+    openapi: "3.0.0",
     info: {
-      title: 'DarthTator API with OAuth',
-      version: '1.0.0',
-      description: 'API Documentation for DarthTator, now with Google OAuth2 and JWT security.',
+      title: "DarthTator API with OAuth",
+      version: "1.0.0",
+      description:
+        "API Documentation for DarthTator, now with Google OAuth2 and JWT security.",
     },
     servers: [
       {
         url: serverUrl,
-        description: 'API Server',
+        description: "API Server",
       },
     ],
     components: {
       securitySchemes: {
         bearerAuth: {
-          type: 'http',
-          scheme: 'bearer',
-          bearerFormat: 'JWT',
-          description: 'Enter JWT Bearer token. You can get one by logging in via Google and it will be displayed on the home page.',
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT",
+          description:
+            "Enter JWT Bearer token. You can get one by logging in via Google and it will be displayed on the home page.",
         },
       },
       schemas: {
         Product: {
-            type: 'object',
-            properties: {
-                // ... your Product schema properties
-            }
-         },
+          type: "object",
+          properties: {
+            // ... your Product schema properties
+          },
+        },
         Contact: {
-            type: 'object',
-            properties: {
-                // ... your Contact schema properties
-            }
+          type: "object",
+          properties: {
+            // ... your Contact schema properties
+          },
         },
         User: {
-          type: 'object',
+          type: "object",
           properties: {
-            id: { type: 'string', description: 'User MongoDB ID' },
-            googleId: { type: 'string', description: 'User Google ID' },
-            displayName: { type: 'string' },
-            firstName: { type: 'string' },
-            lastName: { type: 'string' },
-            email: { type: 'string', format: 'email' },
-            createdAt: { type: 'string', format: 'date-time' },
-          }
-        }
-      }
+            id: { type: "string", description: "User MongoDB ID" },
+            googleId: { type: "string", description: "User Google ID" },
+            displayName: { type: "string" },
+            firstName: { type: "string" },
+            lastName: { type: "string" },
+            email: { type: "string", format: "email" },
+            createdAt: { type: "string", format: "date-time" },
+          },
+        },
+      },
     },
   },
-  apis: ['./routes/*.js', './app.js'],
+  apis: ["./routes/*.js", "./app.js"],
 };
 
 const specs = swaggerJsdoc(options);
@@ -100,17 +105,16 @@ const swaggerUiAuthScript = `
 
 module.exports = (app) => {
   app.use(
-    '/api-docs',
+    "/api-docs",
     swaggerUi.serve,
 
     (req, res) => {
-
       const html = swaggerUi.generateHTML(specs, {
-        customCss: '.swagger-ui .topbar { display: none }',
+        customCss: ".swagger-ui .topbar { display: none }",
         customSiteTitle: "DarthTator API Docs",
       });
 
-      res.send(html.replace('</body>', swaggerUiAuthScript + '</body>'));
+      res.send(html.replace("</body>", swaggerUiAuthScript + "</body>"));
     }
   );
 };
