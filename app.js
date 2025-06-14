@@ -5,6 +5,7 @@ const dotenv = require("dotenv");
 const session = require("express-session");
 const passport = require("passport");
 const connectDB = require("./config/db");
+const swaggerSetup = require("./config/swagger");
 require("./config/passport-setup");
 
 dotenv.config();
@@ -45,6 +46,8 @@ app.use("/api/recipes", recipeRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/reviews", reviewRoutes);
 
+swaggerSetup(app);
+
 app.get("/", (req, res) => {
   res.setHeader("Content-Type", "text/html");
   const token = req.query.token;
@@ -53,9 +56,12 @@ app.get("/", (req, res) => {
   if (token) {
     tokenDisplay = `
       <h3>Your JWT Token:</h3>
-      <p style="word-break: break-all;">${token}</p>
-      <p><strong>Copy this token</strong> to use with API clients for accessing protected routes.</p>
-      <p>Set Header: <code>Authorization: Bearer ${token}</code></p>`;
+      <div class="token-container">
+          <pre id="jwt-token">${token}</pre>
+          <button onclick="copyToken()">Copy Token</button>
+      </div>
+      <p><strong>Copy this token</strong> to use with API clients or the "Authorize" button in the API Docs for accessing protected routes.</p>
+      <p>Set Header: <code>Authorization: Bearer YOUR_TOKEN</code></p>`;
   }
   let pageMessage = "";
   if (message) {
@@ -67,13 +73,36 @@ app.get("/", (req, res) => {
   res.status(200).send(`
     <!DOCTYPE html>
     <html lang="en">
-    <head><title>Recipe API</title></head>
-    <body style="font-family: sans-serif; margin: 20px;">
+    <head>
+        <title>Recipe API</title>
+        <style>
+            body { font-family: sans-serif; margin: 40px; line-height: 1.6; }
+            code { background-color: #f0f0f0; padding: 2px 5px; border-radius: 4px; }
+            .token-container { display: flex; align-items: center; gap: 10px; background-color: #eee; border: 1px solid #ddd; padding: 10px; border-radius: 5px; }
+            #jwt-token { margin: 0; white-space: pre-wrap; word-break: break-all; flex-grow: 1; }
+            button, .button-link { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; text-decoration: none; font-size: 16px; display: inline-block; }
+            .button-link { margin-top: 20px; }
+            button:hover, .button-link:hover { background-color: #0056b3; }
+        </style>
+    </head>
+    <body>
         <h1>Recipe API</h1>
         ${pageMessage}
         <p><a href="${API_URL}/auth/google">Login with Google to get a JWT Token</a></p>
-        <p>Use the token to access protected routes for creating, updating, or deleting recipes, categories, and reviews.</p>
+        <a href="/api-docs" class="button-link">View API Docs</a>
+        <hr style="margin: 20px 0;">
         ${tokenDisplay}
+        <script>
+            function copyToken() {
+                const tokenText = document.getElementById('jwt-token').innerText;
+                navigator.clipboard.writeText(tokenText).then(() => {
+                    alert('Token copied to clipboard!');
+                }).catch(err => {
+                    console.error('Failed to copy token: ', err);
+                    alert('Could not copy token.');
+                });
+            }
+        </script>
     </body>
     </html>
   `);
@@ -83,7 +112,9 @@ const PORT = process.env.PORT || 5000;
 
 if (process.env.NODE_ENV !== "test") {
   app.listen(PORT, () =>
-    console.log(`Server running on port ${PORT}. Main page at ${API_URL}/`)
+    console.log(
+      `Server running on port ${PORT}. API Docs at ${API_URL}/api-docs`
+    )
   );
 }
 
